@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 class SquidGamePiggyCard extends StatefulWidget {
   final double totalSavings;
   final double totalTarget;
+  final String currencySymbol;
   final Function(double) onQuickDeposit;
 
   const SquidGamePiggyCard({
     super.key,
     required this.totalSavings,
     required this.totalTarget,
+    this.currencySymbol = '฿',
     required this.onQuickDeposit,
   });
 
@@ -54,7 +56,7 @@ class SquidGamePiggyCardState extends State<SquidGamePiggyCard>
       );
     }
 
-    _lastDepositText = '+฿${amount.toStringAsFixed(0)} 🪙';
+    _lastDepositText = '+${widget.currencySymbol}${amount.toStringAsFixed(0)} 🪙';
     _coinController.forward(from: 0.0);
     widget.onQuickDeposit(amount);
   }
@@ -229,7 +231,7 @@ class SquidGamePiggyCardState extends State<SquidGamePiggyCard>
 
           // Total Savings Balance
           Text(
-            '฿${widget.totalSavings.toStringAsFixed(0)}',
+            '${widget.currencySymbol}${widget.totalSavings.toStringAsFixed(0)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 34,
@@ -237,7 +239,7 @@ class SquidGamePiggyCardState extends State<SquidGamePiggyCard>
             ),
           ),
           Text(
-            'เป้าหมายรวม ฿${widget.totalTarget.toStringAsFixed(0)}',
+            'เป้าหมายรวม ${widget.currencySymbol}${widget.totalTarget.toStringAsFixed(0)}',
             style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
           const SizedBox(height: 16),
@@ -278,7 +280,7 @@ class SquidGamePiggyCardState extends State<SquidGamePiggyCard>
           ),
         ),
         child: Text(
-          '+฿${amount.toStringAsFixed(0)}',
+          '+${widget.currencySymbol}${amount.toStringAsFixed(0)}',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
       ),

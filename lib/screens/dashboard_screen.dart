@@ -20,10 +20,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _currentAvatarEmoji = '🐷';
   String _currentCurrency = 'THB (฿)';
   bool _isPinLockEnabled = true;
+  bool _isDarkMode = false;
+  String _goalSearchQuery = '';
 
   final GlobalKey<SquidGamePiggyCardState> _squidPiggyKey = GlobalKey();
 
   final List<String> _avatarEmojiOptions = ['🐷', '👑', '🦄', '🐱', '🦊', '🐻', '🦁', '💎', '🚀', '🤖'];
+
+  final List<Map<String, dynamic>> _goalIconOptions = [
+    {'icon': Icons.savings_rounded, 'name': 'หมูออมทรัพย์'},
+    {'icon': Icons.phone_iphone_rounded, 'name': 'สมาร์ทโฟน'},
+    {'icon': Icons.flight_takeoff_rounded, 'name': 'ท่องเที่ยว'},
+    {'icon': Icons.shield_rounded, 'name': 'เงินฉุกเฉิน'},
+    {'icon': Icons.headphones_rounded, 'name': 'หูฟัง/ไอที'},
+    {'icon': Icons.directions_car_rounded, 'name': 'ยานพาหนะ'},
+    {'icon': Icons.home_rounded, 'name': 'บ้าน/ที่อยู่อาศัย'},
+    {'icon': Icons.laptop_mac_rounded, 'name': 'คอมพิวเตอร์'},
+    {'icon': Icons.shopping_bag_rounded, 'name': 'ช้อปปิ้ง'},
+  ];
+
+  final List<Color> _goalColorOptions = [
+    const Color(0xFFFF6B8B),
+    const Color(0xFF4ECDC4),
+    const Color(0xFFFFD166),
+    const Color(0xFF1DD1A1),
+    const Color(0xFF54A0FF),
+    const Color(0xFF5f27cd),
+  ];
+
+  final List<String> _dailyQuotes = [
+    '💡 "การออมเงินเล็กๆ ในวันนี้ คืออิสรภาพทางการเงินในวันข้างหน้า!"',
+    '🌟 "วินัยสร้างได้ตั้งแต่วันนี้ ยอดเงินออมเติบโตอย่างมั่นคง"',
+    '🚀 "เริ่มต้นเร็ว ยิ่งได้เปรียบ สนุกกับการออมเงินด้วย SaveEz!"',
+  ];
 
   @override
   void initState() {
@@ -31,7 +60,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _currentUserName = widget.userName;
   }
 
-  // Demo Goals
+  // Dynamic Currency Symbol Getter
+  String get _currencySymbol {
+    if (_currentCurrency.contains('\$') || _currentCurrency.contains('USD')) return '\$';
+    if (_currentCurrency.contains('¥') || _currentCurrency.contains('JPY')) return '¥';
+    if (_currentCurrency.contains('€') || _currentCurrency.contains('EUR')) return '€';
+    return '฿';
+  }
+
+  // Exchange Rate Engine (1 THB = X Foreign Currency)
+  double get _exchangeRate {
+    if (_currentCurrency.contains('USD') || _currentCurrency.contains('\$')) {
+      return 1 / 35.0; // 35 THB = $1 USD
+    }
+    if (_currentCurrency.contains('JPY') || _currentCurrency.contains('¥')) {
+      return 4.0; // 1 THB = ¥4 JPY
+    }
+    if (_currentCurrency.contains('EUR') || _currentCurrency.contains('€')) {
+      return 1 / 38.0; // 38 THB = €1 EUR
+    }
+    return 1.0; // THB
+  }
+
+  // Convert base THB amount to active currency value
+  double _val(double amountInTHB) {
+    return amountInTHB * _exchangeRate;
+  }
+
+  // Convert input value in active currency back to base THB
+  double _parseToTHB(double valInActiveCurrency) {
+    return valInActiveCurrency / _exchangeRate;
+  }
+
+  // Format currency text (e.g. $1,000, ฿35,000, ¥140,000)
+  String _fmtMoney(double amountInTHB) {
+    final double v = _val(amountInTHB);
+    if (v >= 1000) {
+      return '$_currencySymbol${v.toStringAsFixed(0)}';
+    } else if (v < 10 && v > 0) {
+      return '$_currencySymbol${v.toStringAsFixed(2)}';
+    } else {
+      return '$_currencySymbol${v.toStringAsFixed(1)}';
+    }
+  }
+
+  // Achievement Badges
+  final List<AchievementBadge> _achievements = [
+    AchievementBadge(
+      id: 'a1',
+      title: 'หมูน้อยก้าวแรก 🏅',
+      description: 'ฝากเงินครั้งแรกเข้ากระปุกออมสินสำเร็จ',
+      iconEmoji: '🏅',
+      isUnlocked: true,
+      unlockRequirement: 'ฝากเงินสำเร็จ 1 ครั้ง',
+    ),
+    AchievementBadge(
+      id: 'a2',
+      title: 'สายสปีดวินัยเหล็ก 🔥',
+      description: 'ออมเงินติดต่อกัน 7 วัน (7-Day Streak)',
+      iconEmoji: '🔥',
+      isUnlocked: true,
+      unlockRequirement: 'Streak ออมเงินครบ 7 วัน',
+    ),
+    AchievementBadge(
+      id: 'a3',
+      title: 'กระปุกใบแรกในชีวิต 👑',
+      description: 'ออมเงินครบเป้าหมาย 100% ในกระปุกใบแรก',
+      iconEmoji: '👑',
+      isUnlocked: true,
+      unlockRequirement: 'ออมเงินครบเป้าหมาย 1 กระปุก',
+    ),
+    AchievementBadge(
+      id: 'a4',
+      title: 'เศรษฐีหมูทองคำ 💎',
+      description: 'สะสมยอดเงินออมรวมเกินเป้าหมาย',
+      iconEmoji: '💎',
+      isUnlocked: true,
+      unlockRequirement: 'เงินออมรวมสะสมครบกำหนด',
+    ),
+    AchievementBadge(
+      id: 'a5',
+      title: 'นักออมไร้พ่าย 🚀',
+      description: 'ออมเงินติดต่อกัน 30 วัน',
+      iconEmoji: '🚀',
+      isUnlocked: false,
+      unlockRequirement: 'Streak ออมเงินครบ 30 วัน',
+    ),
+  ];
+
+  // Demo Goals (Base amounts in THB)
   final List<SavingsGoal> _goals = [
     SavingsGoal(
       id: '1',
@@ -86,7 +203,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ),
   ];
 
-  // Demo Transactions Log
+  // Demo Transactions Log (Amounts in THB)
   final List<SavingsTransaction> _transactions = [
     SavingsTransaction(
       id: 't1',
@@ -114,29 +231,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ),
   ];
 
-  List<SavingsGoal> get _activeGoals => _goals.where((g) => !g.isCompleted).toList();
-  List<SavingsGoal> get _completedGoals => _goals.where((g) => g.isCompleted).toList();
+  List<SavingsGoal> get _activeGoals => _goals
+      .where((g) => !g.isCompleted && g.title.toLowerCase().contains(_goalSearchQuery.toLowerCase()))
+      .toList();
 
-  double get _totalSavings => _goals.fold(0, (sum, item) => sum + item.currentAmount);
-  double get _totalTarget => _goals.fold(0, (sum, item) => sum + item.targetAmount);
+  List<SavingsGoal> get _completedGoals => _goals
+      .where((g) => g.isCompleted && g.title.toLowerCase().contains(_goalSearchQuery.toLowerCase()))
+      .toList();
 
-  // Undo / Reverse Deposit Transaction (ย้อนคืนเงินเมื่อกดฝากผิด)
+  double get _totalSavingsTHB => _goals.fold(0, (sum, item) => sum + item.currentAmount);
+  double get _totalTargetTHB => _goals.fold(0, (sum, item) => sum + item.targetAmount);
+
+  // Undo / Reverse Deposit Transaction
   void _undoTransaction(SavingsTransaction tx) {
     final goalIndex = _goals.indexWhere((g) => g.title == tx.goalTitle);
     if (goalIndex != -1) {
       final goal = _goals[goalIndex];
-      final newCurrent = (goal.currentAmount - tx.amount).clamp(0.0, double.infinity);
+      final newCurrentTHB = (goal.currentAmount - tx.amount).clamp(0.0, double.infinity);
       setState(() {
         _goals[goalIndex] = goal.copyWith(
-          currentAmount: newCurrent,
-          isCompleted: newCurrent >= goal.targetAmount,
+          currentAmount: newCurrentTHB,
+          isCompleted: newCurrentTHB >= goal.targetAmount,
         );
         _transactions.removeWhere((t) => t.id == tx.id);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('ย้อนคืนเงิน ฿${tx.amount.toStringAsFixed(0)} จาก ${tx.goalTitle} เรียบร้อยแล้ว 🔄'),
+          content: Text('ย้อนคืนเงิน ${_fmtMoney(tx.amount)} จาก ${tx.goalTitle} เรียบร้อยแล้ว 🔄'),
           backgroundColor: const Color(0xFFFF8E53),
           behavior: SnackBarBehavior.floating,
         ),
@@ -144,7 +266,218 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  // Reset All Savings Feature (รีเซ็ตเงินออมทั้งหมดพร้อมหน้าต่างยืนยัน)
+  // Interactive Savings Calculator Dialog
+  void _showSavingsCalculatorDialog() {
+    final targetController = TextEditingController(text: _val(12000).toStringAsFixed(0));
+    final monthsController = TextEditingController(text: '6');
+    double dailyCalculated = _val(66.6);
+    double monthlyCalculated = _val(2000.0);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          void updateCalc() {
+            final target = double.tryParse(targetController.text) ?? 0;
+            final months = double.tryParse(monthsController.text) ?? 1;
+            if (target > 0 && months > 0) {
+              setModalState(() {
+                monthlyCalculated = target / months;
+                dailyCalculated = target / (months * 30.0);
+              });
+            }
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: const Row(
+              children: [
+                Icon(Icons.calculate_rounded, color: Color(0xFFFF6B8B)),
+                SizedBox(width: 8),
+                Text('คำนวณแผนออมเงินล่วงหน้า 🧮', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: targetController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'เป้าหมายเงินออมที่อยากได้',
+                    prefixText: '$_currencySymbol ',
+                    filled: true,
+                    fillColor: const Color(0xFFF7F8FA),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  ),
+                  onChanged: (v) => updateCalc(),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: monthsController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'ระยะเวลาที่ต้องการออม (เดือน)',
+                    suffixText: 'เดือน',
+                    filled: true,
+                    fillColor: const Color(0xFFF7F8FA),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                  ),
+                  onChanged: (v) => updateCalc(),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B8B).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('ต้องออมต่อวัน:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '$_currencySymbol${dailyCalculated.toStringAsFixed(1)} / วัน',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFF6B8B), fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('ต้องออมต่อเดือน:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '$_currencySymbol${monthlyCalculated.toStringAsFixed(0)} / เดือน',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFF8E53), fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('ปิด', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _showAddGoalDialog();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B8B),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('เริ่มสร้างกระปุกนี้เลย'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // Shareable Achievement Card Dialog
+  void _showShareableCard(SavingsGoal goal) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          width: 320,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF6B8B), Color(0xFFFF8E53)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.savings_rounded, color: Colors.white, size: 24),
+                  SizedBox(width: 8),
+                  Text('SaveEz Achievement 🏆', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(goal.icon, color: goal.color, size: 48),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                goal.title,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'ออมสำเร็จครบ ${_fmtMoney(goal.targetAmount)} 🎉',
+                style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  'เจ้าของกระปุก: $_currentUserName $_currentAvatarEmoji',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('ปิด', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('บันทึกและคัดลอกการ์ดความสำเร็จพร้อมแชร์แล้ว! 📸✨'),
+                  backgroundColor: Color(0xFF4CAF50),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            icon: const Icon(Icons.share_rounded, size: 18),
+            label: const Text('คัดลอกรูปแชร์'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B8B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Reset All Savings Feature
   void _showResetAllConfirmationDialog() {
     showDialog(
       context: context,
@@ -162,9 +495,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
-        content: const Text(
-          'การดำเนินการนี้จะปรับยอดเงินออมสะสมในทุกกระปุกกลับเป็น ฿0 และล้างประวัติการฝากเงินทั้งหมด คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ต?',
-          style: TextStyle(fontSize: 14),
+        content: Text(
+          'การดำเนินการนี้จะปรับยอดเงินออมสะสมในทุกกระปุกกลับเป็น ${_currencySymbol}0 และล้างประวัติการฝากเงินทั้งหมด คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ต?',
+          style: const TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
@@ -185,8 +518,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               });
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('รีเซ็ตยอดเงินออมทั้งหมดกลับเป็น ฿0 เรียบร้อยแล้ว 🔄'),
+                SnackBar(
+                  content: Text('รีเซ็ตยอดเงินออมทั้งหมดกลับเป็น ${_currencySymbol}0 เรียบร้อยแล้ว 🔄'),
                   backgroundColor: Colors.redAccent,
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -210,28 +543,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       builder: (ctx) => SimpleDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('เลือกสกุลเงิน 💱', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('เลือกสกุลเงิน 💱 (1 USD = ฿35, 1 EUR = ฿38, 1 THB = ¥4)',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         children: [
           _buildCurrencyOption('THB (฿) - บาทไทย'),
-          _buildCurrencyOption('USD (\$) - ดอลลาร์สหรัฐ'),
-          _buildCurrencyOption('JPY (¥) - เยนญี่ปุ่น'),
-          _buildCurrencyOption('EUR (€) - ยูโร'),
+          _buildCurrencyOption('USD (\$) - ดอลลาร์สหรัฐ (1 \$ ≈ ฿35)'),
+          _buildCurrencyOption('JPY (¥) - เยนญี่ปุ่น (1 THB ≈ ¥4)'),
+          _buildCurrencyOption('EUR (€) - ยูโร (1 € ≈ ฿38)'),
         ],
       ),
     );
   }
 
   Widget _buildCurrencyOption(String option) {
-    final bool isSelected = _currentCurrency == option.split(' - ').first;
+    final String currName = option.split(' - ').first;
+    final bool isSelected = _currentCurrency == currName;
     return SimpleDialogOption(
       onPressed: () {
         setState(() {
-          _currentCurrency = option.split(' - ').first;
+          _currentCurrency = currName;
         });
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('เปลี่ยนสกุลเงินเป็น $_currentCurrency เรียบร้อยแล้ว!'),
+            content: Text('เปลี่ยนสกุลเงินเป็น $_currentCurrency พร้อมคำนวณอัตราแลกเปลี่ยนอัตโนมัติแล้ว! ✨'),
             backgroundColor: const Color(0xFF4CAF50),
             behavior: SnackBarBehavior.floating,
           ),
@@ -242,7 +577,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(option, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+            Text(option, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             if (isSelected) const Icon(Icons.check_circle_rounded, color: Color(0xFFFF6B8B)),
           ],
         ),
@@ -333,20 +668,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
             const ExpansionTile(
+              title: Text('เมื่อเปลี่ยนสกุลเงิน ยอดเงินจะแปลงอัตราแลกเปลี่ยนให้อัตโนมัติไหม?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text('แปลงอัตราแลกเปลี่ยนคำนวณให้อัตโนมัติครับ เช่น \$1 USD = ฿35, 1 EUR = ฿38, 1 THB = ¥4 JPY ยอดเงินและกระปุกของคุณจะอัปเดตมูลค่าทันที! 💱'),
+                )
+              ],
+            ),
+            const ExpansionTile(
               title: Text('ถ้าฝากเงินผิด สามารถย้อนกลับได้ไหม?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
               children: [
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Text('สามารถกดปุ่ม "ย้อนเงินคืน" ที่รายการประวัติการฝากเงินย้อนหลังได้ตลอดเวลาครับ! 🔄'),
-                )
-              ],
-            ),
-            const ExpansionTile(
-              title: Text('กระปุกหมูทองคำ Squid Game ทำงานอย่างไร?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text('เมื่อกดฝากเงิน เหรียญทองคำ 🪙 จะตกลงมาจากด้านบนเข้าสู่กระปุกแก้วหมูทองคำ พร้อมแสดงยอดสะสมและเปอร์เซ็นต์แบบเรียลไทม์!'),
                 )
               ],
             ),
@@ -369,14 +704,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Quick Deposit & Coin Drop Trigger
-  void _quickDeposit(double amount) {
+  // Quick Deposit & Coin Drop Trigger (Amount in Active Currency)
+  void _quickDeposit(double amountInActiveCurrency) {
     if (_activeGoals.isEmpty) return;
     final firstGoal = _activeGoals.first;
+    final amountTHB = _parseToTHB(amountInActiveCurrency);
+
     final newTx = SavingsTransaction(
       id: DateTime.now().toString(),
       goalTitle: firstGoal.title,
-      amount: amount,
+      amount: amountTHB,
       date: DateTime.now(),
       isDeposit: true,
       note: 'ฝากเงินด่วน (Squid Game Deposit)',
@@ -386,7 +723,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final index = _goals.indexWhere((g) => g.id == firstGoal.id);
       if (index != -1) {
         _goals[index] = firstGoal.copyWith(
-          currentAmount: firstGoal.currentAmount + amount,
+          currentAmount: firstGoal.currentAmount + amountTHB,
         );
         _transactions.insert(0, newTx);
       }
@@ -394,7 +731,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('หยอดเหรียญ 🪙 +฿${amount.toStringAsFixed(0)} เข้า ${firstGoal.title} สำเร็จ!'),
+        content: Text('หยอดเหรียญ 🪙 +${_fmtMoney(amountTHB)} เข้า ${firstGoal.title} สำเร็จ!'),
         backgroundColor: const Color(0xFF4CAF50),
         behavior: SnackBarBehavior.floating,
         action: SnackBarAction(
@@ -532,9 +869,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _showDepositDialog(goal, isCheckIn: true, streakCount: newStreak);
   }
 
-  // Deposit Dialog
+  // Deposit Dialog (Input in active currency)
   void _showDepositDialog(SavingsGoal goal, {bool isCheckIn = false, int? streakCount}) {
-    final amountController = TextEditingController(text: '100');
+    final amountController = TextEditingController(text: _val(100).toStringAsFixed(0));
     final noteController = TextEditingController(text: isCheckIn ? 'เช็กอินออมประจำวัน' : '');
 
     showDialog(
@@ -584,7 +921,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 12),
             ],
             Text(
-              'ยอดออมปัจจุบัน: ฿${goal.currentAmount.toStringAsFixed(0)} / ฿${goal.targetAmount.toStringAsFixed(0)}',
+              'ยอดออมปัจจุบัน: ${_fmtMoney(goal.currentAmount)} / ${_fmtMoney(goal.targetAmount)}',
               style: TextStyle(color: Colors.grey[600], fontSize: 13),
             ),
             const SizedBox(height: 12),
@@ -593,8 +930,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               keyboardType: TextInputType.number,
               autofocus: true,
               decoration: InputDecoration(
-                labelText: 'จำนวนเงินที่ฝาก (บาท)',
-                prefixText: '฿ ',
+                labelText: 'จำนวนเงินที่ฝาก ($_currentCurrency)',
+                prefixText: '$_currencySymbol ',
                 filled: true,
                 fillColor: const Color(0xFFF7F8FA),
                 border: OutlineInputBorder(
@@ -626,14 +963,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              final depositAmount = double.tryParse(amountController.text);
-              if (depositAmount != null && depositAmount > 0) {
-                final newAmount = goal.currentAmount + depositAmount;
-                final bool isNewlyCompleted = newAmount >= goal.targetAmount;
+              final depositInput = double.tryParse(amountController.text);
+              if (depositInput != null && depositInput > 0) {
+                final depositTHB = _parseToTHB(depositInput);
+                final newAmountTHB = goal.currentAmount + depositTHB;
+                final bool isNewlyCompleted = newAmountTHB >= goal.targetAmount;
                 final newTx = SavingsTransaction(
                   id: DateTime.now().toString(),
                   goalTitle: goal.title,
-                  amount: depositAmount,
+                  amount: depositTHB,
                   date: DateTime.now(),
                   isDeposit: true,
                   note: noteController.text,
@@ -643,7 +981,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   int index = _goals.indexWhere((g) => g.id == goal.id);
                   if (index != -1) {
                     _goals[index] = goal.copyWith(
-                      currentAmount: newAmount,
+                      currentAmount: newAmountTHB,
                       isCompleted: isNewlyCompleted ? true : goal.isCompleted,
                     );
                     _transactions.insert(0, newTx);
@@ -653,14 +991,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Navigator.pop(ctx);
 
                 // Trigger Squid Game Coin Drop Animation!
-                _squidPiggyKey.currentState?.triggerCoinDrop(depositAmount);
+                _squidPiggyKey.currentState?.triggerCoinDrop(depositInput);
 
                 if (isNewlyCompleted) {
-                  _showCelebrationDialog(goal.copyWith(currentAmount: newAmount));
+                  _showCelebrationDialog(goal.copyWith(currentAmount: newAmountTHB));
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('ฝากเงิน ฿${depositAmount.toStringAsFixed(0)} เข้า ${goal.title} สำเร็จ!'),
+                      content: Text('ฝากเงิน ${_fmtMoney(depositTHB)} เข้า ${goal.title} สำเร็จ!'),
                       backgroundColor: const Color(0xFF4CAF50),
                       behavior: SnackBarBehavior.floating,
                       action: SnackBarAction(
@@ -705,7 +1043,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'คุณออมเงินเข้ากระปุก "${goal.title}" ครบเป้าหมาย ฿${goal.targetAmount.toStringAsFixed(0)} แล้ว!',
+              'คุณออมเงินเข้ากระปุก "${goal.title}" ครบเป้าหมาย ${_fmtMoney(goal.targetAmount)} แล้ว!',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey[700], fontSize: 14),
             ),
@@ -732,8 +1070,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Edit Goal Dialog
   void _showEditGoalDialog(SavingsGoal goal) {
     final titleController = TextEditingController(text: goal.title);
-    final currentAmountController = TextEditingController(text: goal.currentAmount.toStringAsFixed(0));
-    final targetAmountController = TextEditingController(text: goal.targetAmount.toStringAsFixed(0));
+    final currentAmountController = TextEditingController(text: _val(goal.currentAmount).toStringAsFixed(0));
+    final targetAmountController = TextEditingController(text: _val(goal.targetAmount).toStringAsFixed(0));
 
     showDialog(
       context: context,
@@ -762,7 +1100,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'ยอดเงินปัจจุบัน',
-                        prefixText: '฿ ',
+                        prefixText: '$_currencySymbol ',
                         filled: true,
                         fillColor: const Color(0xFFF7F8FA),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -776,7 +1114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'เป้าหมายเงินออม',
-                        prefixText: '฿ ',
+                        prefixText: '$_currencySymbol ',
                         filled: true,
                         fillColor: const Color(0xFFF7F8FA),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
@@ -796,17 +1134,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ElevatedButton(
             onPressed: () {
               final newTitle = titleController.text.trim();
-              final newCurrent = double.tryParse(currentAmountController.text) ?? goal.currentAmount;
-              final newTarget = double.tryParse(targetAmountController.text) ?? goal.targetAmount;
+              final newCurrentVal = double.tryParse(currentAmountController.text) ?? _val(goal.currentAmount);
+              final newTargetVal = double.tryParse(targetAmountController.text) ?? _val(goal.targetAmount);
+
+              final newCurrentTHB = _parseToTHB(newCurrentVal);
+              final newTargetTHB = _parseToTHB(newTargetVal);
 
               setState(() {
                 final index = _goals.indexWhere((g) => g.id == goal.id);
                 if (index != -1) {
                   _goals[index] = goal.copyWith(
                     title: newTitle,
-                    currentAmount: newCurrent,
-                    targetAmount: newTarget,
-                    isCompleted: newCurrent >= newTarget,
+                    currentAmount: newCurrentTHB,
+                    targetAmount: newTargetTHB,
+                    isCompleted: newCurrentTHB >= newTargetTHB,
                   );
                 }
               });
@@ -824,10 +1165,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Create Goal Dialog
+  // Create Goal Dialog with Icon and Color Selector
   void _showAddGoalDialog() {
     final titleController = TextEditingController();
     final targetController = TextEditingController();
+    IconData selectedIcon = Icons.savings_rounded;
+    Color selectedColor = const Color(0xFFFF6B8B);
 
     showDialog(
       context: context,
@@ -839,6 +1182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
                     controller: titleController,
@@ -855,12 +1199,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     controller: targetController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'เป้าหมายเงินออม (บาท)',
-                      prefixText: '฿ ',
+                      labelText: 'เป้าหมายเงินออม ($_currentCurrency)',
+                      prefixText: '$_currencySymbol ',
                       filled: true,
                       fillColor: const Color(0xFFF7F8FA),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                     ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  const Text('เลือกไอคอนประจำกระปุก:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 52,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _goalIconOptions.length,
+                      itemBuilder: (context, i) {
+                        final item = _goalIconOptions[i];
+                        final IconData ic = item['icon'];
+                        final bool isSel = selectedIcon == ic;
+                        return GestureDetector(
+                          onTap: () {
+                            setModalState(() {
+                              selectedIcon = ic;
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isSel ? selectedColor.withOpacity(0.2) : Colors.grey[100],
+                              shape: BoxShape.circle,
+                              border: Border.all(color: isSel ? selectedColor : Colors.transparent, width: 2.5),
+                            ),
+                            child: Icon(ic, color: isSel ? selectedColor : Colors.grey[600], size: 22),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  const Text('เลือกสีประจำกระปุก:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: _goalColorOptions.map((c) {
+                      final bool isSel = selectedColor == c;
+                      return GestureDetector(
+                        onTap: () {
+                          setModalState(() {
+                            selectedColor = c;
+                          });
+                        },
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: c,
+                          child: isSel ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),
@@ -873,18 +1272,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ElevatedButton(
                 onPressed: () {
                   final title = titleController.text.trim();
-                  final target = double.tryParse(targetController.text);
+                  final targetVal = double.tryParse(targetController.text);
 
-                  if (title.isNotEmpty && target != null && target > 0) {
+                  if (title.isNotEmpty && targetVal != null && targetVal > 0) {
+                    final targetTHB = _parseToTHB(targetVal);
                     setState(() {
                       _goals.add(
                         SavingsGoal(
                           id: DateTime.now().toString(),
                           title: title,
                           currentAmount: 0,
-                          targetAmount: target,
-                          icon: Icons.savings_rounded,
-                          color: const Color(0xFFFF6B8B),
+                          targetAmount: targetTHB,
+                          icon: selectedIcon,
+                          color: selectedColor,
                           targetDate: DateTime.now().add(const Duration(days: 90)),
                         ),
                       );
@@ -908,24 +1308,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor = _isDarkMode ? const Color(0xFF1E1B2E) : const Color(0xFFFAF9F6);
+    final cardColor = _isDarkMode ? const Color(0xFF28243D) : Colors.white;
+    final textColor = _isDarkMode ? Colors.white : const Color(0xFF2D3142);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: cardColor,
         title: Row(
           children: [
             const Icon(Icons.savings_rounded, color: Color(0xFFFF6B8B), size: 28),
             const SizedBox(width: 8),
             RichText(
-              text: const TextSpan(
+              text: TextSpan(
                 text: 'Save',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3142),
+                  color: textColor,
                 ),
-                children: [
+                children: const [
                   TextSpan(
                     text: 'Ez',
                     style: TextStyle(color: Color(0xFFFF6B8B)),
@@ -936,6 +1340,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: _isDarkMode ? 'สลับเป็นธีมสว่าง' : 'สลับเป็นธีมมืด',
+            icon: Icon(
+              _isDarkMode ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+              color: const Color(0xFFFF6B8B),
+            ),
+            onPressed: () {
+              setState(() {
+                _isDarkMode = !_isDarkMode;
+              });
+            },
+          ),
           IconButton(
             tooltip: 'แก้ไขโปรไฟล์',
             icon: Text(_currentAvatarEmoji, style: const TextStyle(fontSize: 22)),
@@ -958,11 +1374,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: IndexedStack(
         index: _currentNavIndex,
         children: [
-          _buildHomeTab(),
-          _buildGoalsTab(),
-          _buildAnalyticsTab(),
-          _buildRemindersTab(),
-          _buildProfileTab(),
+          _buildHomeTab(textColor, cardColor),
+          _buildGoalsTab(textColor, cardColor),
+          _buildAnalyticsTab(textColor, cardColor),
+          _buildRemindersTab(textColor, cardColor),
+          _buildProfileTab(textColor, cardColor),
         ],
       ),
 
@@ -981,6 +1397,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           currentIndex: _currentNavIndex,
           onTap: (index) => setState(() => _currentNavIndex = index),
           type: BottomNavigationBarType.fixed,
+          backgroundColor: cardColor,
           selectedItemColor: const Color(0xFFFF6B8B),
           unselectedItemColor: Colors.grey[600],
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
@@ -1013,7 +1430,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // TAB 1: HOME OVERVIEW
-  Widget _buildHomeTab() {
+  Widget _buildHomeTab(Color textColor, Color cardColor) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
       child: Center(
@@ -1042,10 +1459,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Text(
                               'สวัสดี, $_currentUserName 👋',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 19,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF2D3142),
+                                color: textColor,
                               ),
                             ),
                             IconButton(
@@ -1058,20 +1475,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         Text(
                           'หยอดเหรียญลงกระปุกทองคำวันนี้กันเถอะ!',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                         ),
                       ],
                     ),
                   ),
+                  // Calculator Quick Button
+                  IconButton(
+                    tooltip: 'คำนวณแผนออมเงินล่วงหน้า',
+                    icon: const Icon(Icons.calculate_outlined, color: Color(0xFFFF6B8B), size: 28),
+                    onPressed: _showSavingsCalculatorDialog,
+                  ),
                 ],
+              ),
+              const SizedBox(height: 14),
+
+              // Daily Inspiring Quote Banner
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD166).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFFD166).withOpacity(0.5)),
+                ),
+                child: Text(
+                  _dailyQuotes[DateTime.now().second % _dailyQuotes.length],
+                  style: TextStyle(color: _isDarkMode ? Colors.white : const Color(0xFF7A4A00), fontWeight: FontWeight.bold, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
               ),
               const SizedBox(height: 18),
 
-              // SQUID GAME STYLE PIGGY BANK COIN DROP CARD 🪙🐷
+              // SQUID GAME STYLE PIGGY BANK COIN DROP CARD 🪙🐷 (Converts currency dynamically)
               SquidGamePiggyCard(
                 key: _squidPiggyKey,
-                totalSavings: _totalSavings,
-                totalTarget: _totalTarget,
+                totalSavings: _val(_totalSavingsTHB),
+                totalTarget: _val(_totalTargetTHB),
+                currencySymbol: _currencySymbol,
                 onQuickDeposit: _quickDeposit,
               ),
               const SizedBox(height: 24),
@@ -1080,8 +1521,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('กระปุกกำลังออม 🐷',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D3142))),
+                  Text('กระปุกกำลังออม 🐷',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
                   TextButton(
                     onPressed: () => setState(() => _currentNavIndex = 1),
                     child: const Text('ดูทั้งหมด', style: TextStyle(color: Color(0xFFFF6B8B))),
@@ -1094,18 +1535,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _activeGoals.length.clamp(0, 2),
-                itemBuilder: (context, i) => _buildSimpleGoalCard(_activeGoals[i]),
+                itemBuilder: (context, i) => _buildSimpleGoalCard(_activeGoals[i], cardColor, textColor),
               ),
               const SizedBox(height: 20),
 
               // Recent Log with Undo Action Button
-              const Text('ประวัติการฝากเงินล่าสุด 📜',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D3142))),
+              Text('ประวัติการฝากเงินล่าสุด 📜',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
               const SizedBox(height: 10),
 
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
@@ -1123,15 +1564,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         backgroundColor: const Color(0xFF4CAF50).withOpacity(0.12),
                         child: const Icon(Icons.arrow_downward, color: Color(0xFF4CAF50), size: 18),
                       ),
-                      title: Text(tx.goalTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      title: Text(tx.goalTitle, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
                       subtitle: Text('${tx.note.isNotEmpty ? "${tx.note} • " : ""}${tx.date.day}/${tx.date.month}',
                           style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('+฿${tx.amount.toStringAsFixed(0)}',
+                          Text('+${_fmtMoney(tx.amount)}',
                               style: const TextStyle(color: Color(0xFF4CAF50), fontWeight: FontWeight.bold, fontSize: 15)),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           IconButton(
                             icon: const Icon(Icons.undo_rounded, size: 18, color: Colors.orange),
                             tooltip: 'ย้อนเงินคืน (ฝากผิด)',
@@ -1150,8 +1591,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // TAB 2: SAVINGS GOALS
-  Widget _buildGoalsTab() {
+  // TAB 2: SAVINGS GOALS (WITH SEARCH BAR)
+  Widget _buildGoalsTab(Color textColor, Color cardColor) {
     final displayList = _goalsTab == 0 ? _activeGoals : _completedGoals;
 
     return SingleChildScrollView(
@@ -1165,8 +1606,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('กระปุกออมเงินของฉัน 🐷',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2D3142))),
+                  Text('กระปุกออมเงินของฉัน 🐷',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
                   ElevatedButton.icon(
                     onPressed: _showAddGoalDialog,
                     icon: const Icon(Icons.add, size: 18),
@@ -1179,7 +1620,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+
+              // Goal Search Bar
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'ค้นหากระปุกออมเงิน...',
+                  prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFFF6B8B)),
+                  filled: true,
+                  fillColor: cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (val) {
+                  setState(() {
+                    _goalSearchQuery = val;
+                  });
+                },
+              ),
+              const SizedBox(height: 14),
 
               // Segment Filter Tabs
               Row(
@@ -1190,14 +1651,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: _goalsTab == 0 ? const Color(0xFFFF6B8B) : Colors.grey[200],
+                          color: _goalsTab == 0 ? const Color(0xFFFF6B8B) : (_isDarkMode ? const Color(0xFF28243D) : Colors.grey[200]),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
                           child: Text(
                             'กำลังออมเงิน (${_activeGoals.length})',
                             style: TextStyle(
-                              color: _goalsTab == 0 ? Colors.white : Colors.grey[700],
+                              color: _goalsTab == 0 ? Colors.white : Colors.grey[500],
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1212,14 +1673,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: _goalsTab == 1 ? const Color(0xFF4CAF50) : Colors.grey[200],
+                          color: _goalsTab == 1 ? const Color(0xFF4CAF50) : (_isDarkMode ? const Color(0xFF28243D) : Colors.grey[200]),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Center(
                           child: Text(
                             'ออมสำเร็จแล้ว (${_completedGoals.length})',
                             style: TextStyle(
-                              color: _goalsTab == 1 ? Colors.white : Colors.grey[700],
+                              color: _goalsTab == 1 ? Colors.white : Colors.grey[500],
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1231,12 +1692,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 16),
 
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: displayList.length,
-                itemBuilder: (ctx, index) => _buildDetailedGoalCard(displayList[index]),
-              ),
+              if (displayList.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Icon(Icons.search_off_rounded, size: 48, color: Colors.grey[400]),
+                      const SizedBox(height: 8),
+                      Text('ไม่พบกระปุกออมเงินที่ค้นหา', style: TextStyle(color: Colors.grey[500])),
+                    ],
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: displayList.length,
+                  itemBuilder: (ctx, index) => _buildDetailedGoalCard(displayList[index], cardColor, textColor),
+                ),
             ],
           ),
         ),
@@ -1244,8 +1718,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // TAB 3: ANALYTICS & REPORTS
-  Widget _buildAnalyticsTab() {
+  // TAB 3: ANALYTICS, REPORTS & ACHIEVEMENTS
+  Widget _buildAnalyticsTab(Color textColor, Color cardColor) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Center(
@@ -1254,14 +1728,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('สถิติ & รายงานการออม 📊',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2D3142))),
+              Text('สถิติ & รายงานการออม 📊',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
               const SizedBox(height: 6),
-              Text('ภาพรวมการเติบโตของวินัยทางการเงินของคุณ', style: TextStyle(color: Colors.grey[600])),
+              Text('ภาพรวมการเติบโตของวินัยทางการเงินของคุณ', style: TextStyle(color: Colors.grey[500])),
               const SizedBox(height: 20),
 
               // Monthly Savings Trend Chart
               Card(
+                color: cardColor,
                 elevation: 3,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 child: Padding(
@@ -1269,8 +1744,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('ยอดเงินออมรายเดือน (ปี 2024)',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('ยอดเงินออมรายเดือน (ปี 2024)',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
                       const SizedBox(height: 20),
                       SizedBox(
                         height: 180,
@@ -1278,12 +1753,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            _buildBar('ม.ค.', 0.4),
-                            _buildBar('ก.พ.', 0.55),
-                            _buildBar('มี.ค.', 0.35),
-                            _buildBar('เม.ย.', 0.7),
-                            _buildBar('พ.ค.', 0.85),
-                            _buildBar('มิ.ย.', 1.0, isHighest: true),
+                            _buildBar('ม.ค.', 0.4, textColor),
+                            _buildBar('ก.พ.', 0.55, textColor),
+                            _buildBar('มี.ค.', 0.35, textColor),
+                            _buildBar('เม.ย.', 0.7, textColor),
+                            _buildBar('พ.ค.', 0.85, textColor),
+                            _buildBar('มิ.ย.', 1.0, textColor, isHighest: true),
                           ],
                         ),
                       ),
@@ -1293,45 +1768,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Streak & Milestones Summary
-              Row(
-                children: [
-                  Expanded(
-                    child: Card(
-                      color: const Color(0xFFFF8E53).withOpacity(0.12),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                      child: const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Text('🔥 Streak สูงสุด', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            SizedBox(height: 4),
-                            Text('30 วัน', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFFF8E53))),
-                          ],
-                        ),
+              // Achievement Badges Section
+              Text('เหรียญตราความสำเร็จ (Achievements) 🏆',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+              const SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 2.2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: _achievements.length,
+                itemBuilder: (context, index) {
+                  final badge = _achievements[index];
+                  return Card(
+                    color: badge.isUnlocked
+                        ? const Color(0xFFFFD166).withOpacity(0.18)
+                        : cardColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: badge.isUnlocked ? const Color(0xFFFFD166) : Colors.grey[300]!,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Card(
-                      color: const Color(0xFF4CAF50).withOpacity(0.12),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                      child: const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Text('🏆 ออมสำเร็จแล้ว', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            SizedBox(height: 4),
-                            Text('1 กระปุก', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF4CAF50))),
-                          ],
-                        ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Row(
+                        children: [
+                          Text(badge.iconEmoji, style: const TextStyle(fontSize: 28)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  badge.title,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: textColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  badge.isUnlocked ? 'ปลดล็อกแล้ว!' : badge.unlockRequirement,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: badge.isUnlocked ? const Color(0xFFD85A00) : Colors.grey[500],
+                                    fontWeight: badge.isUnlocked ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
             ],
           ),
@@ -1341,7 +1839,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // TAB 4: REMINDERS & NOTIFICATIONS
-  Widget _buildRemindersTab() {
+  Widget _buildRemindersTab(Color textColor, Color cardColor) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Center(
@@ -1350,10 +1848,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('ตารางเตือนความจำฝากเงิน 🔔',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2D3142))),
+              Text('ตารางเตือนความจำฝากเงิน 🔔',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
               const SizedBox(height: 6),
-              Text('ตั้งเวลาเตือนความจำเพื่อไม่ให้พลาดเป้าหมายการออม', style: TextStyle(color: Colors.grey[600])),
+              Text('ตั้งเวลาเตือนความจำเพื่อไม่ให้พลาดเป้าหมายการออม', style: TextStyle(color: Colors.grey[500])),
               const SizedBox(height: 20),
 
               ListView.builder(
@@ -1363,6 +1861,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 itemBuilder: (context, i) {
                   final goal = _activeGoals[i];
                   return Card(
+                    color: cardColor,
                     margin: const EdgeInsets.only(bottom: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: SwitchListTile(
@@ -1375,10 +1874,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         child: Icon(goal.icon, color: goal.color),
                       ),
-                      title: Text(goal.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      title: Text(goal.title, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
                       subtitle: Text(
                         goal.isReminderEnabled ? 'เตือน: ${goal.reminderFrequency}' : 'ปิดการแจ้งเตือน',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
                       ),
                       value: goal.isReminderEnabled,
                       onChanged: (val) {
@@ -1400,8 +1899,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // TAB 5: PROFILE & SETTINGS (ALL COLUMNS CLICKABLE)
-  Widget _buildProfileTab() {
+  // TAB 5: PROFILE & SETTINGS
+  Widget _buildProfileTab(Color textColor, Color cardColor) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Center(
@@ -1422,7 +1921,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(_currentUserName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(_currentUserName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor)),
                   const SizedBox(width: 6),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
@@ -1430,46 +1929,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
-              Text('สมาชิก SaveEz Premium 🌟', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+              Text('สมาชิก SaveEz Premium 🌟', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
               const SizedBox(height: 24),
 
               Card(
+                color: cardColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 child: Column(
                   children: [
                     ListTile(
                       leading: const Icon(Icons.person_outline_rounded, color: Color(0xFFFF6B8B)),
-                      title: const Text('แก้ไขชื่อและไอคอนโปรไฟล์'),
+                      title: Text('แก้ไขชื่อและไอคอนโปรไฟล์', style: TextStyle(color: textColor)),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: _showEditProfileDialog,
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      leading: const Icon(Icons.calculate_outlined, color: Color(0xFFFF6B8B)),
+                      title: Text('เครื่องมือคำนวณแผนการออมเงิน', style: TextStyle(color: textColor)),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: _showSavingsCalculatorDialog,
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
                       leading: const Icon(Icons.currency_exchange_rounded, color: Color(0xFFFF6B8B)),
-                      title: const Text('สกุลเงินการออม'),
+                      title: Text('สกุลเงินการออม', style: TextStyle(color: textColor)),
                       trailing: Text(_currentCurrency, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFF6B8B))),
                       onTap: _showCurrencyDialog,
                     ),
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.notifications_active_outlined, color: Color(0xFFFF6B8B)),
-                      title: const Text('การแจ้งเตือน & เวลาออมเงิน'),
+                      title: Text('การแจ้งเตือน & เวลาออมเงิน', style: TextStyle(color: textColor)),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () {
-                        setState(() => _currentNavIndex = 3); // Switch to Reminders tab
+                        setState(() => _currentNavIndex = 3);
                       },
                     ),
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.lock_outline_rounded, color: Color(0xFFFF6B8B)),
-                      title: const Text('รหัสผ่านและความปลอดภัย'),
+                      title: Text('รหัสผ่านและความปลอดภัย', style: TextStyle(color: textColor)),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: _showSecurityDialog,
                     ),
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.help_outline_rounded, color: Color(0xFFFF6B8B)),
-                      title: const Text('ศูนย์ช่วยเหลือและคำถามที่พบบ่อย (FAQ)'),
+                      title: Text('ศูนย์ช่วยเหลือและคำถามที่พบบ่อย (FAQ)', style: TextStyle(color: textColor)),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: _showFaqSheet,
                     ),
@@ -1509,15 +2016,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Simple Goal Card for Home
-  Widget _buildSimpleGoalCard(SavingsGoal goal) {
+  Widget _buildSimpleGoalCard(SavingsGoal goal, Color cardColor, Color textColor) {
     return Card(
+      color: cardColor,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ListTile(
         leading: Icon(goal.icon, color: goal.color, size: 28),
-        title: Text(goal.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        subtitle: Text('ออมวันละ ฿${goal.dailySavingsNeeded.toStringAsFixed(0)} • เหลืออีก ${goal.daysRemaining} วัน',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+        title: Text(goal.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
+        subtitle: Text('ออมวันละ ${_fmtMoney(goal.dailySavingsNeeded)} • เหลืออีก ${goal.daysRemaining} วัน',
+            style: TextStyle(color: Colors.grey[500], fontSize: 12)),
         trailing: ElevatedButton(
           onPressed: () => _showDepositDialog(goal),
           style: ElevatedButton.styleFrom(
@@ -1532,9 +2040,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Detailed Goal Card for Goals Tab (Icon-based)
-  Widget _buildDetailedGoalCard(SavingsGoal goal) {
+  // Detailed Goal Card for Goals Tab
+  Widget _buildDetailedGoalCard(SavingsGoal goal, Color cardColor, Color textColor) {
     return Card(
+      color: cardColor,
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -1559,11 +2068,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(goal.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('💡 ต้องหยอดวันละ ฿${goal.dailySavingsNeeded.toStringAsFixed(0)}',
+                      Text(goal.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+                      Text('💡 ต้องหยอดวันละ ${_fmtMoney(goal.dailySavingsNeeded)}',
                           style: const TextStyle(color: Color(0xFFFF6B8B), fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.share_rounded, size: 18, color: Color(0xFFFF6B8B)),
+                  tooltip: 'แชร์การ์ดความสำเร็จ',
+                  onPressed: () => _showShareableCard(goal),
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.grey),
@@ -1576,8 +2090,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('฿${goal.currentAmount.toStringAsFixed(0)} / ฿${goal.targetAmount.toStringAsFixed(0)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('${_fmtMoney(goal.currentAmount)} / ${_fmtMoney(goal.targetAmount)}',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
                 Text('${(goal.progress * 100).toStringAsFixed(0)}%',
                     style: TextStyle(fontWeight: FontWeight.bold, color: goal.color)),
               ],
@@ -1631,7 +2145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Custom painted bar for trend chart
-  Widget _buildBar(String month, double factor, {bool isHighest = false}) {
+  Widget _buildBar(String month, double factor, Color textColor, {bool isHighest = false}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -1644,7 +2158,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        Text(month, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(month, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor)),
       ],
     );
   }

@@ -117,3 +117,21 @@ class SavingsTransaction {
     this.note = '',
   });
 }
+
+class AchievementBadge {
+  final String id;
+  final String title;
+  final String description;
+  final String iconEmoji;
+  final bool isUnlocked;
+  final String unlockRequirement;
+
+  AchievementBadge({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.iconEmoji,
+    required this.isUnlocked,
+    required this.unlockRequirement,
+  });
+}

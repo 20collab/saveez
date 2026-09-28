@@ -5,6 +5,8 @@ class SquidGamePiggyCard extends StatefulWidget {
   final double totalSavings;
   final double totalTarget;
   final String currencySymbol;
+  final bool isBalanceHidden;
+  final VoidCallback? onToggleHideBalance;
   final Function(double) onQuickDeposit;
 
   const SquidGamePiggyCard({
@@ -12,6 +14,8 @@ class SquidGamePiggyCard extends StatefulWidget {
     required this.totalSavings,
     required this.totalTarget,
     this.currencySymbol = '฿',
+    this.isBalanceHidden = false,
+    this.onToggleHideBalance,
     required this.onQuickDeposit,
   });
 
@@ -87,7 +91,7 @@ class SquidGamePiggyCardState extends State<SquidGamePiggyCard>
       ),
       child: Column(
         children: [
-          // Header Label & Crown
+          // Header Label & Eye Privacy Toggle Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -105,20 +109,36 @@ class SquidGamePiggyCardState extends State<SquidGamePiggyCard>
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD166),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Squid Savings',
-                  style: TextStyle(
-                    color: Color(0xFF2B1055),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
+              Row(
+                children: [
+                  // Eye Privacy Toggle Button (ปุ่มซ่อน/เปิดยอดเงิน)
+                  IconButton(
+                    icon: Icon(
+                      widget.isBalanceHidden
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                      color: const Color(0xFFFFD166),
+                      size: 20,
+                    ),
+                    tooltip: widget.isBalanceHidden ? 'แสดงยอดเงิน' : 'ซ่อนยอดเงิน',
+                    onPressed: widget.onToggleHideBalance,
                   ),
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFD166),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Squid Savings',
+                      style: TextStyle(
+                        color: Color(0xFF2B1055),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -166,7 +186,9 @@ class SquidGamePiggyCardState extends State<SquidGamePiggyCard>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${(overallProgress * 100).toStringAsFixed(0)}%',
+                          widget.isBalanceHidden
+                              ? '••••'
+                              : '${(overallProgress * 100).toStringAsFixed(0)}%',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -229,9 +251,11 @@ class SquidGamePiggyCardState extends State<SquidGamePiggyCard>
           ),
           const SizedBox(height: 12),
 
-          // Total Savings Balance
+          // Total Savings Balance (Masked when isBalanceHidden is true)
           Text(
-            '${widget.currencySymbol}${widget.totalSavings.toStringAsFixed(0)}',
+            widget.isBalanceHidden
+                ? '${widget.currencySymbol}••••••••'
+                : '${widget.currencySymbol}${widget.totalSavings.toStringAsFixed(0)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 34,
@@ -239,7 +263,9 @@ class SquidGamePiggyCardState extends State<SquidGamePiggyCard>
             ),
           ),
           Text(
-            'เป้าหมายรวม ${widget.currencySymbol}${widget.totalTarget.toStringAsFixed(0)}',
+            widget.isBalanceHidden
+                ? 'เป้าหมายรวม ${widget.currencySymbol}••••••••'
+                : 'เป้าหมายรวม ${widget.currencySymbol}${widget.totalTarget.toStringAsFixed(0)}',
             style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
           const SizedBox(height: 16),

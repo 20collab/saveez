@@ -22,6 +22,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _currentCurrency = 'THB (฿)';
   bool _isPinLockEnabled = true;
   bool _isDarkMode = false;
+  bool _isBalanceHidden = false; // Privacy Balance Hide Switcher 👁️/🙈
   String _goalSearchQuery = '';
 
   final GlobalKey<SquidGamePiggyCardState> _squidPiggyKey = GlobalKey();
@@ -94,8 +95,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return valInActiveCurrency / _exchangeRate;
   }
 
-  // Format currency text (e.g. $1,000, ฿35,000, ¥140,000)
-  String _fmtMoney(double amountInTHB) {
+  // Format currency text with Privacy Balance Masking Option (e.g. $1,000 or $••••••)
+  String _fmtMoney(double amountInTHB, {bool forceShow = false}) {
+    if (_isBalanceHidden && !forceShow) {
+      return '$_currencySymbol••••••';
+    }
     final double v = _val(amountInTHB);
     if (v >= 1000) {
       return '$_currencySymbol${v.toStringAsFixed(0)}';
@@ -104,6 +108,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else {
       return '$_currencySymbol${v.toStringAsFixed(1)}';
     }
+  }
+
+  // Toggle Privacy Mode (ซ่อน/แสดงยอดเงิน)
+  void _toggleHideBalance() {
+    setState(() {
+      _isBalanceHidden = !_isBalanceHidden;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isBalanceHidden ? 'ซ่อนยอดเงินในกระปุกเรียบร้อยแล้ว 🙈' : 'แสดงยอดเงินในกระปุกเรียบร้อยแล้ว 👁️'),
+        backgroundColor: const Color(0xFFFF6B8B),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   // Achievement Badges
@@ -260,7 +279,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('ย้อนคืนเงิน ${_fmtMoney(tx.amount)} จาก ${tx.goalTitle} เรียบร้อยแล้ว 🔄'),
+          content: Text('ย้อนคืนเงิน ${_fmtMoney(tx.amount, forceShow: true)} จาก ${tx.goalTitle} เรียบร้อยแล้ว 🔄'),
           backgroundColor: const Color(0xFFFF8E53),
           behavior: SnackBarBehavior.floating,
         ),
@@ -635,7 +654,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'ออมสำเร็จครบ ${_fmtMoney(goal.targetAmount)} 🎉',
+                'ออมสำเร็จครบ ${_fmtMoney(goal.targetAmount, forceShow: true)} 🎉',
                 style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 16),
@@ -936,7 +955,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('หยอดเหรียญ 🪙 +${_fmtMoney(amountTHB)} เข้า ${firstGoal.title} สำเร็จ!'),
+        content: Text('หยอดเหรียญ 🪙 +${_fmtMoney(amountTHB, forceShow: true)} เข้า ${firstGoal.title} สำเร็จ!'),
         backgroundColor: const Color(0xFF4CAF50),
         behavior: SnackBarBehavior.floating,
         action: SnackBarAction(
@@ -1203,7 +1222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('ฝากเงิน ${_fmtMoney(depositTHB)} เข้า ${goal.title} สำเร็จ!'),
+                      content: Text('ฝากเงิน ${_fmtMoney(depositTHB, forceShow: true)} เข้า ${goal.title} สำเร็จ!'),
                       backgroundColor: const Color(0xFF4CAF50),
                       behavior: SnackBarBehavior.floating,
                       action: SnackBarAction(
@@ -1248,7 +1267,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'คุณออมเงินเข้ากระปุก "${goal.title}" ครบเป้าหมาย ${_fmtMoney(goal.targetAmount)} แล้ว!',
+              'คุณออมเงินเข้ากระปุก "${goal.title}" ครบเป้าหมาย ${_fmtMoney(goal.targetAmount, forceShow: true)} แล้ว!',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey[700], fontSize: 14),
             ),
@@ -1545,6 +1564,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          // Eye Privacy Toggle Button in AppBar
+          IconButton(
+            tooltip: _isBalanceHidden ? 'แสดงยอดเงิน' : 'ซ่อนยอดเงิน',
+            icon: Icon(
+              _isBalanceHidden ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+              color: const Color(0xFFFF6B8B),
+            ),
+            onPressed: _toggleHideBalance,
+          ),
           IconButton(
             tooltip: _isDarkMode ? 'สลับเป็นธีมสว่าง' : 'สลับเป็นธีมมืด',
             icon: Icon(
@@ -1725,6 +1753,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 totalSavings: _val(_totalSavingsTHB),
                 totalTarget: _val(_totalTargetTHB),
                 currencySymbol: _currencySymbol,
+                isBalanceHidden: _isBalanceHidden,
+                onToggleHideBalance: _toggleHideBalance,
                 onQuickDeposit: _quickDeposit,
               ),
               const SizedBox(height: 24),
@@ -2162,6 +2192,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       title: Text('แก้ไขชื่อและไอคอนโปรไฟล์', style: TextStyle(color: textColor)),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: _showEditProfileDialog,
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: Icon(_isBalanceHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFFFF6B8B)),
+                      title: Text('ซ่อนยอดเงินทั้งหมด (Privacy Mode)', style: TextStyle(color: textColor)),
+                      trailing: Switch(
+                        activeColor: const Color(0xFFFF6B8B),
+                        value: _isBalanceHidden,
+                        onChanged: (val) => _toggleHideBalance(),
+                      ),
+                      onTap: _toggleHideBalance,
                     ),
                     const Divider(height: 1),
                     ListTile(

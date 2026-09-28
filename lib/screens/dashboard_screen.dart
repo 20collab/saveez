@@ -15,6 +15,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentNavIndex = 0; // 0=Home, 1=Goals, 2=Analytics, 3=Reminders, 4=Profile
   int _goalsTab = 0; // 0=Active Goals, 1=Completed Goals Archive
+  int _quoteIndex = 0;
 
   late String _currentUserName;
   String _currentAvatarEmoji = '🐷';
@@ -52,6 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     '💡 "การออมเงินเล็กๆ ในวันนี้ คืออิสรภาพทางการเงินในวันข้างหน้า!"',
     '🌟 "วินัยสร้างได้ตั้งแต่วันนี้ ยอดเงินออมเติบโตอย่างมั่นคง"',
     '🚀 "เริ่มต้นเร็ว ยิ่งได้เปรียบ สนุกกับการออมเงินด้วย SaveEz!"',
+    '💖 "ออมวันละนิด จิตแจ่มใส ทุกก้าวเข้าใกล้ความฝันขึ้นอีกนิด"',
   ];
 
   @override
@@ -264,6 +266,209 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       );
     }
+  }
+
+  // Interactive Badge Detail Dialog
+  void _showBadgeDetailDialog(AchievementBadge badge) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Text(badge.iconEmoji, style: const TextStyle(fontSize: 32)),
+            const SizedBox(width: 10),
+            Expanded(child: Text(badge.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(badge.description, style: const TextStyle(fontSize: 14)),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: badge.isUnlocked ? const Color(0xFF4CAF50).withOpacity(0.15) : Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    badge.isUnlocked ? Icons.verified_rounded : Icons.lock_outline_rounded,
+                    color: badge.isUnlocked ? const Color(0xFF4CAF50) : Colors.grey[600],
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      badge.isUnlocked ? 'ปลดล็อกเหรียญรางวัลแล้ว!' : 'เงื่อนไข: ${badge.unlockRequirement}',
+                      style: TextStyle(
+                        color: badge.isUnlocked ? const Color(0xFF4CAF50) : Colors.grey[800],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B8B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('เข้าใจแล้ว'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Monthly Bar Detail Dialog
+  void _showBarDetailDialog(String month, double factor) {
+    final double monthTotalTHB = 5000 * factor * 5;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            const Icon(Icons.bar_chart_rounded, color: Color(0xFFFF6B8B)),
+            const SizedBox(width: 8),
+            Text('รายงานเดือน $month 📊', style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('ยอดออมรวมประจำเดือน $month:', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+            const SizedBox(height: 6),
+            Text(
+              _fmtMoney(monthTotalTHB),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Color(0xFFFF6B8B)),
+            ),
+            const SizedBox(height: 12),
+            const Text('วินัยการออมยอดเยี่ยม ยอดเงินเติบโตขึ้นเรื่อยๆ ชัดเจน!', style: TextStyle(fontSize: 13)),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF6B8B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('ปิด'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Interactive Reminder Settings Dialog
+  void _showReminderSettingsDialog(SavingsGoal goal) {
+    String selectedFreq = goal.reminderFrequency;
+    bool isEnabled = goal.isReminderEnabled;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Row(
+              children: [
+                Icon(goal.icon, color: goal.color),
+                const SizedBox(width: 8),
+                Expanded(child: Text('ตั้งเตือนฝากเงิน: ${goal.title}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SwitchListTile(
+                  activeColor: const Color(0xFFFF6B8B),
+                  title: const Text('เปิดการแจ้งเตือน', style: TextStyle(fontWeight: FontWeight.bold)),
+                  value: isEnabled,
+                  onChanged: (val) {
+                    setModalState(() {
+                      isEnabled = val;
+                    });
+                  },
+                ),
+                if (isEnabled) ...[
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    value: selectedFreq,
+                    decoration: InputDecoration(
+                      labelText: 'ความถี่การแจ้งเตือน',
+                      filled: true,
+                      fillColor: const Color(0xFFF7F8FA),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'ทุกวัน เวลา 20:00 น.', child: Text('ทุกวัน เวลา 20:00 น.')),
+                      DropdownMenuItem(value: 'ทุกวันศุกร์ เวลา 18:00 น.', child: Text('ทุกวันศุกร์ เวลา 18:00 น.')),
+                      DropdownMenuItem(value: 'ทุกวันสิ้นเดือน', child: Text('ทุกวันสิ้นเดือน')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setModalState(() {
+                          selectedFreq = val;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    final index = _goals.indexWhere((g) => g.id == goal.id);
+                    if (index != -1) {
+                      _goals[index] = goal.copyWith(
+                        isReminderEnabled: isEnabled,
+                        reminderFrequency: selectedFreq,
+                      );
+                    }
+                  });
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('อัปเดตการตั้งเวลาเตือนของ ${goal.title} เรียบร้อยแล้ว! 🔔'),
+                      backgroundColor: const Color(0xFF4CAF50),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B8B),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('บันทึก'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   // Interactive Savings Calculator Dialog
@@ -1490,24 +1695,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 14),
 
-              // Daily Inspiring Quote Banner
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD166).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFFFD166).withOpacity(0.5)),
-                ),
-                child: Text(
-                  _dailyQuotes[DateTime.now().second % _dailyQuotes.length],
-                  style: TextStyle(color: _isDarkMode ? Colors.white : const Color(0xFF7A4A00), fontWeight: FontWeight.bold, fontSize: 13),
-                  textAlign: TextAlign.center,
+              // Daily Inspiring Quote Banner (Tap to cycle quote)
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _quoteIndex = (_quoteIndex + 1) % _dailyQuotes.length;
+                  });
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD166).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFFD166).withOpacity(0.5)),
+                  ),
+                  child: Text(
+                    _dailyQuotes[_quoteIndex % _dailyQuotes.length],
+                    style: TextStyle(color: _isDarkMode ? Colors.white : const Color(0xFF7A4A00), fontWeight: FontWeight.bold, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
               const SizedBox(height: 18),
 
-              // SQUID GAME STYLE PIGGY BANK COIN DROP CARD 🪙🐷 (Converts currency dynamically)
+              // SQUID GAME STYLE PIGGY BANK COIN DROP CARD 🪙🐷
               SquidGamePiggyCard(
                 key: _squidPiggyKey,
                 totalSavings: _val(_totalSavingsTHB),
@@ -1560,6 +1772,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   itemBuilder: (ctx, i) {
                     final tx = _transactions[i];
                     return ListTile(
+                      onTap: () => _undoTransaction(tx),
                       leading: CircleAvatar(
                         backgroundColor: const Color(0xFF4CAF50).withOpacity(0.12),
                         child: const Icon(Icons.arrow_downward, color: Color(0xFF4CAF50), size: 18),
@@ -1734,7 +1947,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text('ภาพรวมการเติบโตของวินัยทางการเงินของคุณ', style: TextStyle(color: Colors.grey[500])),
               const SizedBox(height: 20),
 
-              // Monthly Savings Trend Chart
+              // Monthly Savings Trend Chart (Clickable Bars)
               Card(
                 color: cardColor,
                 elevation: 3,
@@ -1768,7 +1981,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Achievement Badges Section
+              // Achievement Badges Section (Clickable Badges)
               Text('เหรียญตราความสำเร็จ (Achievements) 🏆',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
               const SizedBox(height: 12),
@@ -1784,48 +1997,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 itemCount: _achievements.length,
                 itemBuilder: (context, index) {
                   final badge = _achievements[index];
-                  return Card(
-                    color: badge.isUnlocked
-                        ? const Color(0xFFFFD166).withOpacity(0.18)
-                        : cardColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: badge.isUnlocked ? const Color(0xFFFFD166) : Colors.grey[300]!,
+                  return InkWell(
+                    onTap: () => _showBadgeDetailDialog(badge),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Card(
+                      color: badge.isUnlocked
+                          ? const Color(0xFFFFD166).withOpacity(0.18)
+                          : cardColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: badge.isUnlocked ? const Color(0xFFFFD166) : Colors.grey[300]!,
+                        ),
                       ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Row(
-                        children: [
-                          Text(badge.iconEmoji, style: const TextStyle(fontSize: 28)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  badge.title,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: textColor,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Row(
+                          children: [
+                            Text(badge.iconEmoji, style: const TextStyle(fontSize: 28)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    badge.title,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: textColor,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  badge.isUnlocked ? 'ปลดล็อกแล้ว!' : badge.unlockRequirement,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: badge.isUnlocked ? const Color(0xFFD85A00) : Colors.grey[500],
-                                    fontWeight: badge.isUnlocked ? FontWeight.bold : FontWeight.normal,
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    badge.isUnlocked ? 'ปลดล็อกแล้ว!' : badge.unlockRequirement,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: badge.isUnlocked ? const Color(0xFFD85A00) : Colors.grey[500],
+                                      fontWeight: badge.isUnlocked ? FontWeight.bold : FontWeight.normal,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -1838,7 +2055,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // TAB 4: REMINDERS & NOTIFICATIONS
+  // TAB 4: REMINDERS & NOTIFICATIONS (CLICKABLE LIST TILES)
   Widget _buildRemindersTab(Color textColor, Color cardColor) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -1864,9 +2081,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: cardColor,
                     margin: const EdgeInsets.only(bottom: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: SwitchListTile(
-                      activeColor: const Color(0xFFFF6B8B),
-                      secondary: Container(
+                    child: ListTile(
+                      onTap: () => _showReminderSettingsDialog(goal),
+                      leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: goal.color.withOpacity(0.12),
@@ -1879,15 +2096,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         goal.isReminderEnabled ? 'เตือน: ${goal.reminderFrequency}' : 'ปิดการแจ้งเตือน',
                         style: TextStyle(color: Colors.grey[500], fontSize: 12),
                       ),
-                      value: goal.isReminderEnabled,
-                      onChanged: (val) {
-                        setState(() {
-                          final index = _goals.indexWhere((g) => g.id == goal.id);
-                          if (index != -1) {
-                            _goals[index] = goal.copyWith(isReminderEnabled: val);
-                          }
-                        });
-                      },
+                      trailing: Switch(
+                        activeColor: const Color(0xFFFF6B8B),
+                        value: goal.isReminderEnabled,
+                        onChanged: (val) {
+                          setState(() {
+                            final index = _goals.indexWhere((g) => g.id == goal.id);
+                            if (index != -1) {
+                              _goals[index] = goal.copyWith(isReminderEnabled: val);
+                            }
+                          });
+                        },
+                      ),
                     ),
                   );
                 },
@@ -1899,7 +2119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // TAB 5: PROFILE & SETTINGS
+  // TAB 5: PROFILE & SETTINGS (ALL COLUMNS CLICKABLE)
   Widget _buildProfileTab(Color textColor, Color cardColor) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -2022,6 +2242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ListTile(
+        onTap: () => _showDepositDialog(goal),
         leading: Icon(goal.icon, color: goal.color, size: 28),
         title: Text(goal.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
         subtitle: Text('ออมวันละ ${_fmtMoney(goal.dailySavingsNeeded)} • เหลืออีก ${goal.daysRemaining} วัน',
@@ -2054,14 +2275,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Row(
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: goal.color.withOpacity(0.15),
-                    shape: BoxShape.circle,
+                GestureDetector(
+                  onTap: () => _showEditGoalDialog(goal),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: goal.color.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(goal.icon, color: goal.color, size: 26),
                   ),
-                  child: Icon(goal.icon, color: goal.color, size: 26),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -2144,22 +2368,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Custom painted bar for trend chart
+  // Custom painted bar for trend chart (Clickable)
   Widget _buildBar(String month, double factor, Color textColor, {bool isHighest = false}) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Container(
-          width: 22,
-          height: 130 * factor,
-          decoration: BoxDecoration(
-            color: isHighest ? const Color(0xFFFF6B8B) : const Color(0xFFFF6B8B).withOpacity(0.35),
-            borderRadius: BorderRadius.circular(8),
+    return GestureDetector(
+      onTap: () => _showBarDetailDialog(month, factor),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Container(
+            width: 22,
+            height: 130 * factor,
+            decoration: BoxDecoration(
+              color: isHighest ? const Color(0xFFFF6B8B) : const Color(0xFFFF6B8B).withOpacity(0.35),
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(month, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor)),
-      ],
+          const SizedBox(height: 6),
+          Text(month, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor)),
+        ],
+      ),
     );
   }
 }
